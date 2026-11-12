@@ -1,0 +1,23 @@
+# Build output
+target/
+*.log
+
+# IDE and OS files
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+.DS_Store
+
+# Local tooling
+.claude/
+graphify-out/
+.flattened-pom.xml
+pom.xml.versionsBackup
+
+# Never commit credentials or local environment files
+.env
+.env.*
+settings.xml

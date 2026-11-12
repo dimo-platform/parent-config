@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Finds every {@link Action} declared on this application's controllers and their request DTOs. */
@@ -48,8 +49,8 @@ public class ActionCatalogScanner {
             }
         }
         for (Class<?> controller : controllers) {
-            for (Method method : controller.getDeclaredMethods()) {
-                collect(method.getAnnotation(Action.class), catalog);
+            for (Method method : ReflectionUtils.getUniqueDeclaredMethods(controller)) {
+                collect(AnnotatedElementUtils.findMergedAnnotation(method, Action.class), catalog);
                 for (Parameter parameter : method.getParameters()) {
                     collect(parameter.getAnnotation(Action.class), catalog);
                     collectFromType(parameter.getType(), catalog, visited, 0);
@@ -89,13 +90,22 @@ public class ActionCatalogScanner {
         if (action == null) {
             return;
         }
+        String englishTitle = action.titleEn().isBlank() ? action.title() : action.titleEn();
+        if (englishTitle.isBlank()) {
+            throw new IllegalStateException("@Action " + action.key() + " needs title or titleEn");
+        }
         ActionDescriptor descriptor = new ActionDescriptor(
-                action.key(), action.title(), action.titleFa(), action.group(), action.free(),
-                action.denialCode().isBlank() ? null : action.denialCode(),
-                action.permission().isBlank() ? null : action.permission());
+                action.key(), englishTitle, action.titleFa(), action.group(), action.free(),
+                blankToNull(action.denialCode()), blankToNull(action.permission()),
+                blankToNull(action.service()), action.productEligible(),
+                blankToNull(action.defaultPermission()), action.managedPermission());
         ActionDescriptor existing = catalog.putIfAbsent(descriptor.key(), descriptor);
         if (existing != null && !existing.equals(descriptor)) {
             throw new IllegalStateException("Conflicting @Action declarations for key " + descriptor.key());
         }
+    }
+
+    private String blankToNull(String value) {
+        return value.isBlank() ? null : value;
     }
 }

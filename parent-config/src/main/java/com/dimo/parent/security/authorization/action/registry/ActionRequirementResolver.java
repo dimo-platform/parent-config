@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 
 /** Determines which action keys a concrete controller invocation needs, based on present values only. */
 public class ActionRequirementResolver {
@@ -22,7 +23,7 @@ public class ActionRequirementResolver {
 
     public Set<String> resolve(Method method, Object[] arguments) {
         Set<String> keys = new LinkedHashSet<>();
-        Action onMethod = method.getAnnotation(Action.class);
+        Action onMethod = AnnotatedElementUtils.findMergedAnnotation(method, Action.class);
         if (onMethod != null) {
             keys.add(onMethod.key());
         }

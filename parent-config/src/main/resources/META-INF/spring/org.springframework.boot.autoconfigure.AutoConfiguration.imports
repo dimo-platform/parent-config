@@ -1,0 +1,5 @@
+com.dimo.parent.client.autoconfigure.CommonClientsAutoConfiguration
+com.dimo.parent.config.GlobalConfig
+com.dimo.parent.security.authorization.autoconfigure.CommonAuthorizationAutoConfiguration
+
+com.dimo.parent.observability.ObservabilityAutoConfiguration

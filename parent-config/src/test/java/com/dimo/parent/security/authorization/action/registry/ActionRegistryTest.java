@@ -64,6 +64,33 @@ class ActionRegistryTest {
         }
     }
 
+    interface CatalogueEndpoints {
+
+        @GetMapping("/wallet")
+        @Action(key = "coin.wallet.get_wallet", titleEn = "Read wallet", titleFa = "w", service = "coin",
+                productEligible = false, denialCode = "error.authorization.action.denied",
+                defaultPermission = "COIN_WALLET", managedPermission = false)
+        String wallet();
+    }
+
+    static class CatalogueBase implements CatalogueEndpoints {
+
+        @Override
+        public String wallet() {
+            return "ok";
+        }
+    }
+
+    @RestController
+    static class InheritingController extends CatalogueBase {
+
+        @GetMapping("/own")
+        @Action(key = "coin.own.read", title = "Own", titleFa = "o", managedPermission = false)
+        public String own() {
+            return "ok";
+        }
+    }
+
     private final ActionRequirementResolver resolver = new ActionRequirementResolver();
     private final ActionAuthorizer authorizer = mock(ActionAuthorizer.class);
     private final ActionEnforcementAspect aspect = new ActionEnforcementAspect(authorizer, resolver);
@@ -91,6 +118,54 @@ class ActionRegistryTest {
                     assertThat(action.group()).isEqualTo("sample");
                 });
         context.close();
+    }
+
+    @Test
+    void scan_carriesCatalogueFieldsAndFindsInheritedAndInterfaceDeclarations() {
+        // Arrange
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(InheritingController.class);
+
+        // Act
+        List<ActionDescriptor> actions = new ActionCatalogScanner(context).scan();
+
+        // Assert
+        assertThat(actions).extracting(ActionDescriptor::key)
+                .containsExactlyInAnyOrder("coin.wallet.get_wallet", "coin.own.read");
+        ActionDescriptor wallet = actions.stream().filter(action -> action.key().equals("coin.wallet.get_wallet"))
+                .findFirst().orElseThrow();
+        assertThat(wallet.title()).isEqualTo("Read wallet");
+        assertThat(wallet.titleFa()).isEqualTo("w");
+        assertThat(wallet.service()).isEqualTo("coin");
+        assertThat(wallet.productEligible()).isFalse();
+        assertThat(wallet.denialCode()).isEqualTo("error.authorization.action.denied");
+        assertThat(wallet.defaultPermission()).isEqualTo("COIN_WALLET");
+        assertThat(wallet.managedPermission()).isFalse();
+        ActionDescriptor own = actions.stream().filter(action -> action.key().equals("coin.own.read"))
+                .findFirst().orElseThrow();
+        assertThat(own.service()).isNull();
+        assertThat(own.productEligible()).isTrue();
+        assertThat(own.defaultPermission()).isNull();
+        context.close();
+    }
+
+    @Test
+    void descriptor_defaultsMissingNewFieldsToVersion100Behaviour() {
+        // Act
+        ActionDescriptor legacy = new ActionDescriptor("A_B_C", "t", "f", "g", true, null, null);
+        ActionDescriptor fromOldPayload = new ActionDescriptor("A_B_C", "t", "f", "g", true, null, null,
+                null, null, null, null);
+
+        // Assert
+        assertThat(fromOldPayload).isEqualTo(legacy);
+        assertThat(legacy.productEligible()).isTrue();
+        assertThat(legacy.managedPermission()).isTrue();
+    }
+
+    @Test
+    void resolve_honoursActionDeclaredOnAnInterfaceMethod() throws Exception {
+        // Act / Assert
+        assertThat(resolver.resolve(CatalogueEndpoints.class.getMethod("wallet"), new Object[0]))
+                .containsExactly("coin.wallet.get_wallet");
     }
 
     @Test

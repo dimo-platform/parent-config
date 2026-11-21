@@ -43,7 +43,8 @@ public class SecurityConfig {
         "/api/v1/users", "/api/v1/profiles", "/api/v1/auth/token",
         "/api/v1/auth/refresh", "/api/v1/auth/email/challenges", "/api/v1/auth/email/token",
         "/api/v1/auth/password-reset", "/api/v1/auth/phone/challenges", "/api/v1/auth/phone/token",
-        "/api/v1/auth/phone/password-reset/verify", "/api/v1/auth/phone/password-reset"
+        "/api/v1/auth/phone/password-reset/verify", "/api/v1/auth/phone/password-reset",
+        "/api/v1/auth/phone/signup/verify"
     };
 
     /// service-to-service endpoints (used by other microservices over OpenFeign)
